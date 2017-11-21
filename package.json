@@ -1,0 +1,18 @@
+{
+  "name": "rendezvous",
+  "version": "0.1.0",
+  "description": "A server to help establish P2P connections",
+  "repository": "https://github.com/decentraland/rendezvous",
+  "license": "Apache-2.0",
+  "scripts": {
+    "start": "node server.js",
+    "start:ssl": "local-ssl-proxy --source 3010 --target 3000"
+  },
+  "dependencies": {
+    "body-parser": "^1.18.2",
+    "express": "^4.16.2"
+  },
+  "devDependencies": {
+    "local-ssl-proxy": "^1.3.0"
+  }
+}
