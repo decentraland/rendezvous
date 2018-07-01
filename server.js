@@ -15,6 +15,7 @@ const connections = []
 /**
  * This middleware sets up Server-Sent Events.
  */
+// TODO: Change for socket.io -- SSE has no support on internet explorer
 const sse = (req, res, next) => {
   const connection = {
     uuid: req.params.uuid,
@@ -53,7 +54,27 @@ const sse = (req, res, next) => {
 
 app.use(bodyParser.json())
 
-app.post('/announce', (req, res) => {
+const { eth } = require('decentraland-eth')
+const invite = eth.getContract('DecentralandInvite')
+const SESSION_TIMEOUT_MILLIS = 14 * 24 * 60 * 60 * 1000 // 2 weeks
+
+function requireAuth(req, res, next) {
+  const uuid = req.body.uuid
+  const ownerAddress = req.body.ownerAddress
+  const timestamp = req.body.timestamp
+  const signature = req.body.signature
+  if (timestamp > (new Date().getTime())) return res.sendStatus(400)
+  if (timestamp < (new Date().getTime() - SESSION_TIMEOUT)) return res.sendStatus(400)
+  const message = `\0x19Ethereum signed message:\nDecentraland Auth\n${uuid}\n${timestamp}`
+  const address = eth.utils.ecRecover(message, signature)
+  if (ownerAddress !== address) return res.sendStatus(403)
+  const invited = invite.balanceOf(ownerAddress) > 0
+  if (!invited) return res.sendStatus(403)
+
+  return next()
+}
+
+app.post('/announce', requireAuth, (req, res) => {
   const uuid = req.body.uuid
 
   const packet = {
@@ -71,7 +92,7 @@ app.post('/announce', (req, res) => {
   res.sendStatus(200)
 })
 
-app.post('/:uuid/signal', (req, res) => {
+app.post('/:uuid/signal', requireAuth, (req, res) => {
   const uuid = req.params.uuid
 
   const packet = {
@@ -93,7 +114,7 @@ app.post('/:uuid/signal', (req, res) => {
   res.sendStatus(result ? 200 : 404)
 })
 
-app.get('/:uuid/listen', sse, (req, res) => {
+app.get('/:uuid/listen', requireAuth, sse, (req, res) => {
   res.sseSend({
     type: 'accept'
   })
