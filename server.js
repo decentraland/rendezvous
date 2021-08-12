@@ -81,16 +81,11 @@ app.post('/:uuid/signal', (req, res) => {
     uuid: req.body.uuid
   }
 
-  var result = false
+  const result = connections.filter((c) => c.uuid === uuid)
 
-  connections.forEach((c) => {
-    if (c.uuid === uuid) {
-      c.res.sseSend(packet)
-      result = true
-    }
-  })
+  result.forEach((c) => c.res.sseSend(packet))
 
-  res.sendStatus(result ? 200 : 404)
+  res.sendStatus(result.length ? 200 : 404)
 })
 
 app.get('/:uuid/listen', sse, (req, res) => {
